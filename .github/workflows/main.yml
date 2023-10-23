@@ -2,7 +2,7 @@ name: Deploy Next.js site to Pages
 
 on:
   push:
-    branches: ["feature/**", "release/**", "main"]
+    branches: ["feature/**", "release/**"]
   workflow_dispatch:
   schedule:
     - cron: "45 19 * * 1"
@@ -50,6 +50,7 @@ jobs:
 
   deploy:
     runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/heads/release/')
     needs: build
     permissions:
       contents: read
