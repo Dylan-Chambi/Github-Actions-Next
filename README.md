@@ -1,36 +1,101 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# CI/CD con Next.js. Github Actions y Github Pages
 
-## Getting Started
+Este es un repositorio creado para aplicar conceptos de CI/CD a un proyecto de Next.js., el cual consta de 3 jobs:
 
-First, run the development server:
+- **Test**: Ejecuta los tests de la aplicación.
+    ```yaml
+    test:
+        runs-on: ubuntu-latest
+        steps:
+        - name: Checkout
+            uses: actions/checkout@v3
+        - name: Setup Node
+            uses: actions/setup-node@v3
+            with:
+            node-version: "18"
+            cache: "npm"
+        - name: Install dependencies
+            run: npm ci
+        - name: Test with Jest
+            run: npm run test
+    ```
+- **Build**: Construye la aplicación y la exporta a HTML estático.
+    ```yaml
+    build:
+        runs-on: ubuntu-latest
+        steps:
+        - name: Checkout
+            uses: actions/checkout@v3
+        - name: Setup Node
+            uses: actions/setup-node@v3
+            with:
+            node-version: "18"
+            cache: "npm"
+        - name: Setup Pages
+            uses: actions/configure-pages@v3
+            with:
+            static_site_generator: next
+        - name: Install dependencies
+            run: npm ci
+        - name: Build with Next.js
+            run: npm run build
+        - name: Upload artifact
+            uses: actions/upload-pages-artifact@v2
+            with:
+            path: ./build
+    ```
+- **Deploy**: Despliega la aplicación en Github Pages.
+    ```yaml
+    deploy:
+        runs-on: ubuntu-latest
+        if: startsWith(github.ref, 'refs/heads/release/')
+        needs: build
+        permissions:
+        contents: read
+        pages: write
+        id-token: write
+        environment:
+        name: github-pages
+        url: ${{ steps.deployment.outputs.page_url }}
+        steps:
+        - name: Deploy to GitHub Pages
+            id: deployment
+            uses: actions/deploy-pages@v2
+        - name: Show deployment URL
+            run: echo ${{ steps.deployment.outputs.page_url }}
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+    ```
+
+## Ramas donde se ejecutan los jobs al hacer push
+
+- **feature/\*\***: Se ejecutan los jobs de Test y Build.
+- **release/\*\***: Se ejecutan los jobs de Test, Build y Deploy.
+
+```yaml
+push:
+    branches: ["feature/**", "release/**"]
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Horario de ejecución del workflow
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- **Todos los lunes a las 15:45 (GMT-4)**
+- **Todos los lunes a las 20:00 (GMT-4)**
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+```yaml
+schedule:
+    - cron: "45 19 * * 1"
+    - cron: "0 0 * * 2"
+```
 
-## Learn More
+## Posibilidad de ejecutar el workflow manualmente
 
-To learn more about Next.js, take a look at the following resources:
+Para ejecutar el workflow manualmente, se ir a la pestaña de **Actions** y seleccionar el workflow **Deploy next.js to Pages**. Una vez ahí, se debe hacer click en el botón **Run workflow** y seleccionar alguna de las ramas que se despliegan en el menú desplegable.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```yaml
+workflow_dispatch:
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
 
-## Deploy on Vercel
+## Página desplegada
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+La página desplegada se puede ver en el siguiente enlace: [https://dylan-chambi.github.io/Github-Actions-Next/](https://dylan-chambi.github.io/Github-Actions-Next/)
